@@ -1,4 +1,4 @@
-const API = "http://localhost:8080/api";
+const API = "https://my-backend-c4do.onrender.com/api";
 const $ = id => document.getElementById(id);
 
 const CATEGORIES = { HOSTEL: "Hostel", CLASSROOM_LAB: "Classroom / Lab", TRANSPORT: "Transport",
