@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Complaint and Grievance Portal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-left">
+      <svg viewBox="0 0 64 64" fill="none"><path d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14L32 4z" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><path d="M20 30l8 8 16-16" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h1>Smart Complaint &amp; Grievance Portal</h1>
+      <p>A transparent and efficient platform for students and staff to register complaints, track their resolution in real time, and receive timely action from the concerned departments.</p>
+      <ul>
+        <li>Submit complaints online, by typing or by voice</li>
+        <li>Real-time status tracking with a unique Complaint ID</li>
+        <li>Department-wise assignment and admin remarks</li>
+        <li>Feedback and analytical reports</li>
+      </ul>
+      <p><i>Your Voice Matters...</i></p>
+    </div>
+
+    <div class="login-right">
+      <div class="auth-box">
+        <h2>Welcome</h2>
+        <span class="muted">Sign in or create an account to continue</span>
+        <div class="tabs">
+          <button id="tabLogin" class="active" type="button">Login</button>
+          <button id="tabReg" type="button">Register</button>
+        </div>
+
+        <form id="loginForm">
+          <label>Email address</label>
+          <input id="lEmail" type="email" placeholder="you@college.edu" required>
+          <label>Password</label>
+          <input id="lPass" type="password" placeholder="Enter your password" required>
+          <button class="btn" type="submit">Login</button>
+        </form>
+
+        <form id="regForm" class="hidden">
+          <label>Full name</label>
+          <input id="rName" placeholder="Your full name" required>
+          <label>Email address</label>
+          <input id="rEmail" type="email" placeholder="you@college.edu" required>
+          <label>Password</label>
+          <input id="rPass" type="password" placeholder="Minimum 6 characters" required>
+          <button class="btn" type="submit">Create account</button>
+        </form>
+        <p id="msg" class="msg"></p>
+      </div>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
