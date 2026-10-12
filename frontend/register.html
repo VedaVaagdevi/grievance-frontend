@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create account | Smart Complaint &amp; Grievance Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0E2238;--navy:#173A5E;--paper:#F6F8FB;--amber:#E3A72F;--teal:#1E8A6E;--line:#D5DEE8;--text:#1B2733;--muted:#5B6B7B;
+--serif:"Source Serif 4",Georgia,serif;--sans:"Public Sans",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);color:var(--text);min-height:100vh;display:grid;place-items:center;padding:24px;
+  background:linear-gradient(100deg,rgba(14,34,56,.97),rgba(23,58,94,.85)),url("images/campus.jpg") center/cover no-repeat,var(--ink)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.card{background:#fff;border-radius:10px;padding:32px;width:min(460px,100%);box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.back{display:inline-block;font-size:.88rem;color:var(--muted);text-decoration:none;margin-bottom:14px}
+.back:hover{color:var(--ink)}
+h1{font-family:var(--serif);font-weight:600;font-size:1.7rem;color:var(--ink);margin-bottom:4px}
+.s{color:var(--muted);font-size:.93rem;margin-bottom:20px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.88rem;font-weight:500;margin-bottom:4px}
+.field input,.field select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:6px;font:inherit;background:#fff}
+.field input:focus,.field select:focus{border-color:var(--navy);outline:none;box-shadow:0 0 0 3px rgba(23,58,94,.18)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.msg{font-size:.9rem;min-height:1.4em;margin-bottom:10px}
+.msg.err{color:#B3261E}.msg.ok{color:var(--teal)}
+button{width:100%;background:var(--navy);color:#fff;border:0;border-radius:6px;padding:12px;font:600 1rem var(--sans);cursor:pointer}
+button:hover{background:var(--ink)}
+button:disabled{opacity:.6;cursor:wait}
+.alt{text-align:center;font-size:.9rem;color:var(--muted);margin-top:14px}
+@media(max-width:480px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="card">
+  <a class="back" href="index.html">&larr; Back to home</a>
+  <h1>Create your account</h1>
+  <p class="s">Register to submit complaints and track their status.</p>
+
+  <form id="regForm" novalidate>
+    <div class="field"><label for="name">Full name</label><input id="name" autocomplete="name" required></div>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" required></div>
+    <div class="two">
+      <div class="field"><label for="phone">Phone number</label><input id="phone" type="tel" autocomplete="tel"></div>
+      <div class="field"><label for="dept">Department</label>
+        <select id="dept">
+          <option value="">Select</option>
+          <option>ECE</option><option>CSE</option><option>EEE</option>
+          <option>Mechanical</option><option>Civil</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="two">
+      <div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="new-password" minlength="6" required></div>
+      <div class="field"><label for="pw2">Confirm password</label><input id="pw2" type="password" autocomplete="new-password" required></div>
+    </div>
+    <p class="msg" id="msg" role="alert"></p>
+    <button type="submit" id="btn">Create account</button>
+  </form>
+  <p class="alt">Already registered? <a href="index.html">Login</a></p>
+</main>
+
+<script>
+/* ===== CHANGE THESE TO MATCH YOUR PROJECT ===== */
+const CONFIG = {
+  registerApi: "/api/auth/register",  // your backend register endpoint (POST JSON)
+  // Field names sent to the backend. Rename the values on the right if your Java entity uses different names.
+  fields: { name: "name", email: "email", phone: "phone", department: "department", password: "password" },
+  afterRegister: "index.html"         // page to open after a successful registration
+};
+/* ============================================== */
+
+const msg = document.getElementById("msg");
+const btn = document.getElementById("btn");
+const show = (t, ok) => { msg.textContent = t; msg.className = "msg " + (ok ? "ok" : "err"); };
+
+document.getElementById("regForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const v = id => document.getElementById(id).value.trim();
+  const name = v("name"), email = v("email"), pw = document.getElementById("pw").value;
+
+  if (!name || !email || !pw) return show("Fill in your name, email and password.", false);
+  if (pw.length < 6) return show("Password must be at least 6 characters.", false);
+  if (pw !== document.getElementById("pw2").value) return show("Passwords do not match.", false);
+
+  const F = CONFIG.fields, body = {};
+  body[F.name] = name; body[F.email] = email; body[F.password] = pw;
+  body[F.phone] = v("phone"); body[F.department] = v("dept");
+
+  btn.disabled = true; show("Creating your account...", true);
+  try {
+    const res = await fetch(CONFIG.registerApi, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      show("Account created. Redirecting to login...", true);
+      setTimeout(() => location.href = CONFIG.afterRegister, 1500);
+    } else {
+      const t = await res.text().catch(() => "");
+      show(res.status === 404
+        ? "Registration service not found (404). Check registerApi in the CONFIG block."
+        : (res.status === 409 ? "This email is already registered."
+        : "Could not create the account (error " + res.status + "). " + t.slice(0, 120)), false);
+    }
+  } catch (ex) {
+    show("Cannot reach the server. Make sure the backend is running and the address is correct.", false);
+  } finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>
