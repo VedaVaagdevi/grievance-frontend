@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard | Complaint Portal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span id="logo"></span>
+      <div><h1>Smart Complaint &amp; Grievance Portal</h1><small>Administrator Console</small></div></div>
+    <div class="userbox"><div><b>Administrator</b><small>admin@campus.com</small></div>
+      <button class="btn btn-light btn-sm no-print" onclick="logout()">Logout</button></div>
+  </div>
+
+  <div class="container">
+    <h2 class="page-title">Complaint Management &amp; Reports</h2>
+
+    <div id="banner"></div>
+    <div class="stats" id="stats"></div>
+
+    <div class="grid2">
+      <div class="card"><h2>Status Overview</h2><div id="repStatus"></div></div>
+      <div class="card"><h2>Complaints by Category (Recurring Issues)</h2><div id="repCat"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Department-wise Complaints <span class="muted">(click a department to view its complaints)</span></h2>
+      <div class="dept-grid" id="deptGrid"></div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Track a Complaint</h2>
+      <div class="form-row" style="grid-template-columns:3fr auto;align-items:end">
+        <div><label>Complaint ID</label><input id="aTrack" placeholder="e.g. CMP-000001"></div>
+        <button class="btn" onclick="trackAdmin()">Track</button>
+      </div>
+      <div id="aTrackResult"></div>
+    </div>
+
+    <div class="card">
+      <h2>All Complaints <span class="muted" id="count"></span></h2>
+      <div class="filters no-print">
+        <div><label>Search</label><input id="fQuery" placeholder="Complaint ID, title or user name"></div>
+        <div><label>Status</label><select id="fStatus"><option value="">All</option>
+          <option value="SUBMITTED">Submitted</option><option value="ASSIGNED">Assigned</option>
+          <option value="IN_PROGRESS">In Progress</option><option value="RESOLVED">Resolved</option>
+          <option value="REJECTED">Rejected</option></select></div>
+        <div><label>Category</label><select id="fCat"></select></div>
+        <div><label>Department</label><select id="fDept"></select></div>
+        <button class="btn btn-outline" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-outline" onclick="window.print()">Print</button>
+      </div>
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th>ID</th><th>Complaint</th><th>Raised By</th><th>Department</th><th>Status</th><th>Remarks</th><th class="no-print">Actions</th></tr></thead>
+          <tbody id="list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
