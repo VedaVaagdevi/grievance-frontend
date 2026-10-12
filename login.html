@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - Smart Complaint and Grievance Portal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="auth-page">
+
+  <a class="auth-brand" href="index.html"><span id="logo"></span> Smart Complaint &amp; Grievance Portal</a>
+
+  <div class="auth-box card">
+    <h2>Login</h2>
+    <span class="muted">Sign in to continue to your dashboard</span>
+
+    <form id="loginForm">
+      <label>Email address</label>
+      <input id="lEmail" type="email" placeholder="you@college.edu" required>
+      <label>Password</label>
+      <input id="lPass" type="password" placeholder="Enter your password" required>
+      <button class="btn" type="submit">Login</button>
+    </form>
+
+    <p id="msg" class="msg"></p>
+    <p class="switch">New here? <a href="register.html">Create an account</a></p>
+  </div>
+
+  <a class="back" href="index.html">&larr; Back to home</a>
+
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

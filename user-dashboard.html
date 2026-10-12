@@ -3,74 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>User Dashboard | Complaint Portal</title>
+  <title>My Dashboard - Smart Complaint and Grievance Portal</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand"><span id="logo"></span>
-      <div><h1>Smart Complaint &amp; Grievance Portal</h1><small>Student / Staff Dashboard</small></div></div>
-    <div class="userbox"><div><b id="uname"></b><small id="uemail"></small></div>
-      <button class="btn btn-light btn-sm" onclick="logout()">Logout</button></div>
-  </div>
 
-  <div class="container">
+  <header class="topbar">
+    <div class="brand"><span id="logo"></span><b>Smart Complaint &amp; Grievance Portal</b></div>
+    <div class="right">
+      <span>Hello, <b id="uname"></b></span>
+      <button class="btn btn-light btn-sm" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <main class="container">
     <div class="welcome"><h2 id="welcomeName">Welcome</h2>
       <p>Register your complaints, track their progress in real time and read the admin's remarks here.</p></div>
 
-    <div id="updates"></div>
-
-    <div class="stats">
-      <div class="stat active" data-f="" onclick="setFilter('')"><b id="stTotal">0</b><span>All Complaints</span></div>
-      <div class="stat s-sub" data-f="SUBMITTED" onclick="setFilter('SUBMITTED')"><b id="stSub">0</b><span>Submitted</span></div>
-      <div class="stat s-asg" data-f="ASSIGNED" onclick="setFilter('ASSIGNED')"><b id="stAsg">0</b><span>Assigned</span></div>
-      <div class="stat s-prog" data-f="IN_PROGRESS" onclick="setFilter('IN_PROGRESS')"><b id="stProg">0</b><span>In Progress</span></div>
-      <div class="stat s-res" data-f="RESOLVED" onclick="setFilter('RESOLVED')"><b id="stRes">0</b><span>Resolved</span></div>
-      <div class="stat s-rej" data-f="REJECTED" onclick="setFilter('REJECTED')"><b id="stRej">0</b><span>Rejected</span></div>
-    </div>
+    <div class="stats" id="stats"></div>
 
     <div class="grid2">
-      <div class="card">
-        <h2>Register a New Complaint</h2>
+      <section class="card">
+        <h3>Raise a Complaint</h3>
         <form id="cForm">
-          <label>Complaint title</label>
+          <label>Title</label>
           <input id="cTitle" placeholder="Short summary of the issue" required>
-          <div class="form-row">
-            <div><label>Category</label><select id="cCategory"></select></div>
-            <div><label>Concerned department</label><select id="cDept"></select></div>
+          <div class="row" style="align-items:flex-start">
+            <div style="flex:1;min-width:140px"><label>Category</label><select id="cCategory" required></select></div>
+            <div style="flex:1;min-width:140px"><label>Department</label><select id="cDept" required></select></div>
           </div>
           <label>Description</label>
-          <textarea id="cDesc" rows="5" placeholder="Describe the issue in detail, or use the microphone to speak..." required></textarea>
-          <div class="voice-bar">
-            <button type="button" class="mic" id="micBtn" onclick="toggleVoice()">🎤 <span id="micText">Speak your complaint</span></button>
-            <select id="voiceLang">
-              <option value="en-IN">English (India)</option>
-              <option value="te-IN">Telugu</option>
-              <option value="hi-IN">Hindi</option>
-            </select>
-            <span class="muted">Works in Chrome / Edge</span>
+          <textarea id="cDesc" placeholder="Type your complaint, or use the microphone to speak" required></textarea>
+          <div class="row">
+            <button class="btn" type="submit">Submit Complaint</button>
+            <button class="btn btn-light" type="button" id="micBtn">&#127908; Speak</button>
           </div>
-          <div class="actions"><button class="btn" type="submit">Submit Complaint</button></div>
         </form>
-      </div>
+        <p id="cMsg" class="msg"></p>
+      </section>
 
-      <div class="card">
-        <h2>Track Your Complaint</h2>
-        <label>Complaint ID</label>
-        <input id="trackId" placeholder="e.g. CMP-000001">
-        <div class="actions"><button class="btn" type="button" onclick="track()">Track Status</button></div>
-        <div id="trackResult"></div>
-      </div>
+      <section class="card">
+        <h3>Track by Complaint ID</h3>
+        <div class="row">
+          <input id="trackId" type="number" min="1" placeholder="Enter Complaint ID">
+          <button class="btn" id="trackBtn" type="button">Track</button>
+        </div>
+        <div id="trackOut" style="margin-top:14px"></div>
+      </section>
     </div>
 
-    <div class="card">
-      <h2>My Complaints <span class="muted" id="count"></span></h2>
+    <section class="card">
+      <div class="row between">
+        <h3 style="margin:0">My Complaints</h3>
+        <div class="row">
+          <input id="q" placeholder="Search by title or ID">
+          <select id="fStatus"></select>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Complaint ID</th><th>Details</th><th>Category</th><th>Department</th><th>Status</th><th>Admin Remarks</th><th>Action / Feedback</th></tr></thead>
-          <tbody id="list"></tbody>
+          <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Department</th><th>Status</th><th>Date</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
         </table>
       </div>
+    </section>
+  </main>
+
+  <!-- Detail modal -->
+  <div class="modal hidden" id="detailModal" onclick="if(event.target===this)closeDetail()">
+    <div class="card box">
+      <button class="close" onclick="closeDetail()" aria-label="Close">&times;</button>
+      <div id="detailBody"></div>
     </div>
   </div>
 

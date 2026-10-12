@@ -1,148 +1,193 @@
-const me = requireRole("USER");
+
+const me = requireLogin("USER");
 $("logo").innerHTML = LOGO;
+if (me) { $("uname").textContent = me.name; }
 if (me) $("welcomeName").textContent = "Welcome, " + me.name;
+$("logoutBtn").onclick = logout;
 
-$("cCategory").innerHTML = Object.entries(CATEGORIES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
-$("cDept").innerHTML = `<option value="">Not sure - admin will decide</option>` +
-  DEPARTMENTS.map(d => `<option>${esc(d)}</option>`).join("");
-const suggestDept = () => { $("cDept").value = CATEGORY_DEPT[$("cCategory").value]; };
-$("cCategory").onchange = suggestDept;
-suggestDept();
+let complaints = [];
 
-let list = [], filter = "", tracked = "";
-const SEEN_KEY = "seen_" + (me ? me.email : "");
-const toasted = new Set();
+fillSelect($("cCategory"), CATEGORIES, "Select category");
+fillSelect($("cDept"), DEPARTMENTS, "Select department");
+$("fStatus").innerHTML = '<option value="">All statuses</option>' +
+  STATUSES.map(s => '<option value="' + s + '">' + STATUS_LABEL[s] + "</option>").join("");
 
-/* ---------- Voice input ---------- */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false, baseText = "";
-
-function toggleVoice() {
-  if (!SR) { toast("Voice input needs Google Chrome or Microsoft Edge", "error"); return; }
-  if (listening) { rec.stop(); return; }
-  rec = new SR();
-  rec.lang = $("voiceLang").value;
-  rec.continuous = true;
-  rec.interimResults = true;
-  baseText = $("cDesc").value ? $("cDesc").value.trim() + " " : "";
-  rec.onstart = () => { listening = true; $("micBtn").classList.add("on"); $("micText").textContent = "Listening... click to stop"; };
-  rec.onresult = e => {
-    let t = "";
-    for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
-    $("cDesc").value = baseText + t;
-  };
-  rec.onerror = e => toast("Voice error: " + e.error + (e.error === "not-allowed" ? " (allow microphone access)" : ""), "error");
-  rec.onend = () => { listening = false; $("micBtn").classList.remove("on"); $("micText").textContent = "Speak your complaint"; };
-  rec.start();
-}
-
-/* ---------- Load and render ---------- */
+// ---------- Load and render ----------
 async function load() {
   try {
-    list = await api("/complaints/my");
-    renderStats();
-    handleUpdates();
-    renderTable();
+    complaints = await api("/complaints/my") || [];
+    render();
   } catch (err) {
-    $("list").innerHTML = `<tr><td colspan="7" class="msg">${esc(err.message)}</td></tr>`;
+    $("rows").innerHTML = '<tr><td colspan="7" class="empty">' + esc(err.message === "Failed to fetch"
+      ? "Cannot reach the server. Is the backend running?" : err.message) + "</td></tr>";
   }
 }
 
-function renderStats() {
-  const n = s => list.filter(c => c.status === s).length;
-  $("stTotal").textContent = list.length;
-  $("stSub").textContent = n("SUBMITTED");
-  $("stAsg").textContent = n("ASSIGNED");
-  $("stProg").textContent = n("IN_PROGRESS");
-  $("stRes").textContent = n("RESOLVED");
-  $("stRej").textContent = n("REJECTED");
+function render() {
+  const total = complaints.length;
+  const count = s => complaints.filter(c => c.status === s).length;
+  $("stats").innerHTML =
+    '<div class="stat"><b>' + total + "</b><span>Total complaints</span></div>" +
+    '<div class="stat"><b>' + count("SUBMITTED") + "</b><span>Submitted</span></div>" +
+    '<div class="stat"><b>' + (count("ASSIGNED") + count("IN_PROGRESS")) + "</b><span>In progress</span></div>" +
+    '<div class="stat"><b>' + count("RESOLVED") + "</b><span>Resolved</span></div>";
+
+  const q = $("q").value.trim().toLowerCase();
+  const fs = $("fStatus").value;
+  const list = complaints.filter(c =>
+    (!fs || c.status === fs) &&
+    (!q || String(c.id).includes(q) || (c.title || "").toLowerCase().includes(q)));
+
+  $("rows").innerHTML = list.length ? list.map(c =>
+    "<tr><td>#" + esc(c.id) + "</td><td>" + esc(c.title) + "</td><td>" + esc(c.category) + "</td><td>" +
+    esc(c.department || "-") + "</td><td>" + badge(c.status) + "</td><td>" + fmtDate(c.createdAt) +
+    '</td><td><button class="btn btn-light btn-sm" onclick="openDetail(' + Number(c.id) + ')">View</button></td></tr>'
+  ).join("") : '<tr><td colspan="7" class="empty">No complaints found.</td></tr>';
 }
 
-function setFilter(f) {
-  filter = f;
-  document.querySelectorAll(".stat[data-f]").forEach(el => el.classList.toggle("active", el.dataset.f === f));
-  renderTable();
-}
+$("q").oninput = render;
+$("fStatus").onchange = render;
 
-function renderTable() {
-  const rows = filter ? list.filter(c => c.status === filter) : list;
-  $("count").textContent = `(${rows.length})`;
-  $("list").innerHTML = rows.map(c => `
-    <tr>
-      <td><b>${esc(c.code)}</b><br><span class="muted">${fmt(c.createdAt)}</span></td>
-      <td><b>${esc(c.title)}</b><span class="desc">${esc(c.description)}</span></td>
-      <td>${esc(CATEGORIES[c.category] || c.category)}</td>
-      <td>${esc(c.department || "Awaiting assignment")}</td>
-      <td>${badge(c.status)}${c.status === "RESOLVED" && c.resolvedAt ? `<br><span class="muted">on ${fmt(c.resolvedAt)}</span>` : ""}</td>
-      <td>${c.adminRemark ? `<div class="remark">${esc(c.adminRemark)}</div>` : "-"}</td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick="trackCode('${esc(c.code)}')">Track</button>
-        ${c.rating ? `<div style="margin-top:6px;color:#d97706">${"★".repeat(c.rating)}${"☆".repeat(5 - c.rating)}</div><span class="muted">${esc(c.feedback || "")}</span>`
-          : c.status === "RESOLVED" ? `<button class="btn btn-green btn-sm" style="margin-top:6px" onclick="giveFeedback(${c.id})">Give Feedback</button>` : ""}
-      </td>
-    </tr>`).join("") || `<tr><td colspan="7" class="muted">No complaints in this category.</td></tr>`;
-}
-
-/* ---------- Notifications for status changes ---------- */
-function handleUpdates() {
-  const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || "{}");
-  let changed = false;
-  list.forEach(c => { if (!(c.code in seen)) { seen[c.code] = c.status; changed = true; } });
-  if (changed) localStorage.setItem(SEEN_KEY, JSON.stringify(seen));
-
-  const ups = list.filter(c => seen[c.code] !== c.status);
-  ups.forEach(c => {
-    const key = c.code + c.status;
-    if (!toasted.has(key)) { toasted.add(key); toast(`${c.code} is now ${STATUS_LABEL[c.status]}`); }
-  });
-
-  $("updates").innerHTML = ups.length ? `<div class="card"><h2>🔔 Recent Updates
-      <button class="btn btn-outline btn-sm" style="float:right" onclick="dismissUpdates()">Mark all as read</button></h2>` +
-    ups.map(c => `<div class="alert alert-${ALERT[c.status]}"><b>${esc(c.code)}</b> - ${esc(c.title)}: now ${badge(c.status)}<br>
-      ${esc(statusText(c))}${c.adminRemark ? `<br><i>Remarks: ${esc(c.adminRemark)}</i>` : ""}</div>`).join("") + `</div>` : "";
-}
-
-function dismissUpdates() {
-  const seen = {};
-  list.forEach(c => { seen[c.code] = c.status; });
-  localStorage.setItem(SEEN_KEY, JSON.stringify(seen));
-  handleUpdates();
-}
-
-/* ---------- Actions ---------- */
+// ---------- Submit complaint ----------
 $("cForm").onsubmit = async e => {
   e.preventDefault();
-  if (listening) rec.stop();
+  $("cMsg").className = "msg";
+  $("cMsg").textContent = "";
+
   try {
+    const categoryMap = {
+      "Hostel": "HOSTEL",
+      "Classroom / Lab": "CLASSROOM_LAB",
+      "Transport": "TRANSPORT",
+      "Electricity / Water": "ELECTRICITY_WATER",
+      "Cleanliness": "CLEANLINESS",
+      "Maintenance": "MAINTENANCE",
+      "Other": "OTHER"
+    };
+
     const c = await api("/complaints", "POST", {
-      title: $("cTitle").value, description: $("cDesc").value,
-      category: $("cCategory").value, department: $("cDept").value });
-    toast("Complaint submitted. Your ID: " + c.code);
-    e.target.reset(); suggestDept();
-    $("trackId").value = c.code;
+      title: $("cTitle").value.trim(),
+      category: categoryMap[$("cCategory").value],
+      department: $("cDept").value,
+      description: $("cDesc").value.trim()
+    });
+
+    $("cForm").reset();
+    $("cMsg").className = "ok";
+    $("cMsg").textContent = "Complaint submitted." +
+      (c && c.id ? " Your Complaint ID is #" + c.id + "." : "");
     load();
-  } catch (err) { toast(err.message, "error"); }
+  } catch (err) {
+    $("cMsg").textContent = err.message;
+  }
 };
 
-function trackCode(code) { $("trackId").value = code; track(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+// ---------- Voice input ----------
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) {
+  $("micBtn").style.display = "none";
+} else {
+  const rec = new SR();
+  rec.lang = "en-IN";
+  rec.interimResults = false;
+  let listening = false;
 
-async function track(silent = false) {
-  const code = $("trackId").value.trim();
-  if (!code) { if (!silent) toast("Enter a complaint ID", "error"); return; }
+  rec.onresult = e => {
+    const said = e.results[0][0].transcript;
+    $("cDesc").value = ($("cDesc").value ? $("cDesc").value + " " : "") + said;
+  };
+
+  rec.onend = () => {
+    listening = false;
+    $("micBtn").innerHTML = "&#127908; Speak";
+  };
+
+  rec.onerror = () => {
+    listening = false;
+    $("micBtn").innerHTML = "&#127908; Speak";
+  };
+
+  $("micBtn").onclick = () => {
+    if (listening) {
+      rec.stop();
+      return;
+    }
+    listening = true;
+    $("micBtn").innerHTML = "&#9209; Listening... (click to stop)";
+    rec.start();
+  };
+}
+
+// ---------- Detail, timeline and feedback ----------
+function detailHTML(c) {
+  let html = '<div class="detail"><h3>Complaint #' + esc(c.id) + " - " + esc(c.title) + "</h3>" +
+    timelineHTML(c.status) +
+    "<dl><dt>Status</dt><dd>" + badge(c.status) + "</dd>" +
+    "<dt>Category</dt><dd>" + esc(c.category) + "</dd>" +
+    "<dt>Department</dt><dd>" + esc(c.department || "Not assigned yet") + "</dd>" +
+    "<dt>Submitted</dt><dd>" + fmtDate(c.createdAt) + "</dd>" +
+    "<dt>Description</dt><dd>" + esc(c.description) + "</dd>" +
+    "<dt>Admin remark</dt><dd>" + esc(c.remark || "No remarks yet") + "</dd>";
+
+  if (c.feedbackRating) {
+    html += "<dt>Your feedback</dt><dd>" +
+      "&#9733;".repeat(c.feedbackRating) + " " + esc(c.feedbackComment || "") + "</dd>";
+  }
+
+  html += "</dl></div>";
+
+  if (c.status === "RESOLVED" && !c.feedbackRating) {
+    html += '<hr style="border:none;border-top:1px solid var(--line);margin:18px 0">' +
+      "<h4>Rate the resolution</h4>" +
+      '<select id="fbRating"><option value="5">5 - Excellent</option><option value="4">4 - Good</option>' +
+      '<option value="3">3 - Average</option><option value="2">2 - Poor</option><option value="1">1 - Very poor</option></select>' +
+      '<textarea id="fbComment" placeholder="Any comments? (optional)" style="margin-top:10px;min-height:70px"></textarea>' +
+      '<button class="btn" onclick="sendFeedback(' + Number(c.id) + ')">Submit feedback</button>' +
+      '<p id="fbMsg" class="msg"></p>';
+  }
+
+  return html;
+}
+
+function openDetail(id) {
+  const c = complaints.find(x => x.id === id);
+  if (!c) return;
+  $("detailBody").innerHTML = detailHTML(c);
+  $("detailModal").classList.remove("hidden");
+}
+
+function closeDetail() {
+  $("detailModal").classList.add("hidden");
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeDetail();
+});
+
+async function sendFeedback(id) {
   try {
-    const c = await api("/complaints/track/" + encodeURIComponent(code));
-    tracked = c.code;
-    $("trackResult").innerHTML = trackCard(c);
-  } catch (err) { if (!silent) $("trackResult").innerHTML = `<p class="msg">${esc(err.message)}</p>`; }
+    await api("/complaints/" + id + "/feedback", "POST", {
+      rating: Number($("fbRating").value),
+      comment: $("fbComment").value.trim()
+    });
+    closeDetail();
+    load();
+  } catch (err) {
+    $("fbMsg").textContent = err.message;
+  }
 }
 
-async function giveFeedback(id) {
-  const rating = parseInt(prompt("Rate the resolution (1 = poor, 5 = excellent):"), 10);
-  if (!rating || rating < 1 || rating > 5) return;
-  const comment = prompt("Any comments? (optional)") || "";
-  try { await api(`/complaints/${id}/feedback`, "POST", { rating, comment }); toast("Thank you for your feedback"); load(); }
-  catch (err) { toast(err.message, "error"); }
-}
+// ---------- Track by ID ----------
+$("trackBtn").onclick = async () => {
+  const id = $("trackId").value;
+  if (!id) return;
+
+  try {
+    const c = await api("/complaints/" + encodeURIComponent(id));
+    $("trackOut").innerHTML = detailHTML(c).replace(/<hr[\s\S]*$/, "");
+  } catch (err) {
+    $("trackOut").innerHTML = '<p class="msg">' + esc(err.message) + "</p>";
+  }
+};
 
 load();
-setInterval(() => { load(); if (tracked) track(true); }, 15000);   // auto refresh every 15 s

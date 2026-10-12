@@ -1,89 +1,76 @@
-const API = "https://my-backend-c4do.onrender.com/api";
+// ===== Configuration =====
+// Change this if your Spring Boot backend runs on a different address or has a context path.
+const API_BASE = "http://localhost:8080/api";
+
+const CATEGORIES = ["Hostel", "Classroom / Lab", "Transport", "Electricity / Water", "Cleanliness", "Maintenance", "Other"];
+const DEPARTMENTS = ["Administration", "Hostel Office", "Academic Office", "Transport", "Electrical", "Housekeeping", "Maintenance"];
+const STATUSES = ["SUBMITTED", "ASSIGNED", "IN_PROGRESS", "RESOLVED"];
+const STATUS_LABEL = { SUBMITTED: "Submitted", ASSIGNED: "Assigned", IN_PROGRESS: "In Progress", RESOLVED: "Resolved" };
+
+// ===== Helpers =====
 const $ = id => document.getElementById(id);
 
-const CATEGORIES = { HOSTEL: "Hostel", CLASSROOM_LAB: "Classroom / Lab", TRANSPORT: "Transport",
-  ELECTRICITY_WATER: "Electricity / Water", CLEANLINESS: "Cleanliness", MAINTENANCE: "Maintenance", OTHER: "Other" };
-const DEPARTMENTS = ["Hostel Office", "Academic / Lab", "Transport Dept", "Electrical & Water",
-  "Housekeeping", "Maintenance", "Administration"];
-const CATEGORY_DEPT = { HOSTEL: "Hostel Office", CLASSROOM_LAB: "Academic / Lab", TRANSPORT: "Transport Dept",
-  ELECTRICITY_WATER: "Electrical & Water", CLEANLINESS: "Housekeeping", MAINTENANCE: "Maintenance", OTHER: "Administration" };
-const STATUS_LABEL = { SUBMITTED: "Submitted", ASSIGNED: "Assigned", IN_PROGRESS: "In Progress",
-  RESOLVED: "Resolved", REJECTED: "Rejected" };
-
-const LOGO = `<svg viewBox="0 0 64 64" fill="none"><path d="M32 4 8 14v16c0 15 10 26 24 30 14-4 24-15 24-30V14L32 4z" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><path d="M20 30l8 8 16-16" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const LOGO = '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+  '<rect width="40" height="40" rx="10" fill="#fff"/>' +
+  '<path d="M10 12h20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H18l-6 5v-5h-2a2 2 0 0 1-2-2V14a2 2 0 0 1 2-2z" fill="#2563eb"/>' +
+  '<path d="M14 19l4 4 8-8" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-function getUser() { return JSON.parse(sessionStorage.getItem("user") || "null"); }
-function logout() { sessionStorage.clear(); location.href = "index.html"; }
-function badge(s) { return `<span class="badge ${s}">${STATUS_LABEL[s] || s}</span>`; }
-function fmt(d) { return new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }); }
-
-function toast(text, type = "ok") {
-  let box = $("toast");
-  if (!box) { box = document.createElement("div"); box.id = "toast"; document.body.appendChild(box); }
-  const t = document.createElement("div");
-  t.className = "toast " + (type === "error" ? "error" : "");
-  t.textContent = text;
-  box.appendChild(t);
-  setTimeout(() => t.remove(), 4000);
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-const ALERT = { SUBMITTED: "blue", ASSIGNED: "purple", IN_PROGRESS: "amber", RESOLVED: "green", REJECTED: "red" };
-
-function statusText(c) {
-  const d = c.department || "the concerned department";
-  return {
-    SUBMITTED: "Your complaint has been received and is waiting to be assigned to a department.",
-    ASSIGNED: `Your complaint has been assigned to ${d}. Work will begin shortly.`,
-    IN_PROGRESS: `${d} is currently working on your complaint.`,
-    RESOLVED: "Your complaint has been RESOLVED. Please read the remarks and share your feedback.",
-    REJECTED: "Your complaint was rejected. Please read the admin remarks."
-  }[c.status];
+function fmtDate(d) {
+  if (!d) return "-";
+  const x = new Date(d);
+  return isNaN(x) ? esc(d) : x.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function statusAlert(c) { return `<div class="alert alert-${ALERT[c.status]}">${esc(statusText(c))}</div>`; }
-
-function timeline(c) {
-  if (c.status === "REJECTED") return `<div class="alert alert-red">Rejected on ${fmt(c.updatedAt)}.</div>`;
-  const steps = [["SUBMITTED", c.createdAt], ["ASSIGNED", c.assignedAt], ["IN_PROGRESS", c.inProgressAt], ["RESOLVED", c.resolvedAt]];
-  const idx = steps.findIndex(s => s[0] === c.status);
-  return `<div class="steps">` + steps.map(([s, d], i) => `
-    <div class="step ${i <= idx ? "done" : ""} ${i === idx ? "current" : ""}">
-      <span>${i <= idx ? "✓" : i + 1}</span><label>${STATUS_LABEL[s]}</label>
-      <small>${i <= idx ? (d ? fmt(d) : "") : "Pending"}</small></div>`).join("") + `</div>`;
+function badge(status) {
+  return '<span class="badge b-' + esc(status) + '">' + esc(STATUS_LABEL[status] || status) + "</span>";
 }
 
-function trackCard(c, forAdmin = false) {
-  return `<div class="track-box">
-    <p><b>${esc(c.code)}</b> - ${esc(c.title)} ${badge(c.status)}</p>
-    <p><b>Raised by:</b> ${esc(c.user ? c.user.name : "-")} (${esc(c.user ? c.user.email : "")})</p>
-    <p><b>Category:</b> ${esc(CATEGORIES[c.category] || c.category)}</p>
-    <p><b>Description:</b> ${esc(c.description)}</p>
-    ${timeline(c)}
-    ${forAdmin ? "" : statusAlert(c)}
-    <p><b>Department:</b> ${esc(c.department || "Not assigned yet")}</p>
-    <p><b>Last updated:</b> ${fmt(c.updatedAt)}</p>
-    <p><b>Admin remarks:</b> ${c.adminRemark ? `<span class="remark">${esc(c.adminRemark)}</span>` : "-"}</p></div>`;
+function timelineHTML(status) {
+  const idx = Math.max(0, STATUSES.indexOf(status));
+  return '<div class="timeline">' + STATUSES.map((s, i) =>
+    '<div class="t' + (i <= idx ? " done" : "") + '"><i>' + (i <= idx ? "&#10003;" : i + 1) + "</i><br>" + STATUS_LABEL[s] + "</div>").join("") + "</div>";
 }
 
+function fillSelect(el, items, firstLabel) {
+  el.innerHTML = (firstLabel ? '<option value="">' + firstLabel + "</option>" : "") +
+    items.map(i => '<option value="' + esc(i) + '">' + esc(i) + "</option>").join("");
+}
+
+// ===== API call =====
 async function api(path, method = "GET", body = null, authOverride = null) {
   const headers = { "Content-Type": "application/json" };
   const auth = authOverride || sessionStorage.getItem("auth");
   if (auth) headers["Authorization"] = auth;
-  const res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : null });
-  if (res.status === 401) {
-    if (authOverride) throw new Error("Invalid email or password");
-    logout(); throw new Error("Session expired");
+
+  const res = await fetch(API_BASE + path, { method, headers, body: body ? JSON.stringify(body) : null });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+
+  if (!res.ok) {
+    if (res.status === 401 && !authOverride) { sessionStorage.clear(); location.href = "login.html"; }
+    const msg = (data && data.message) || (data && data.error) || (typeof data === "string" && data) ||
+      (res.status === 401 ? "Invalid email or password" : "Request failed (" + res.status + ")");
+    throw new Error(msg);
   }
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error((data && data.message) || "Request failed");
   return data;
 }
 
-function requireRole(role) {
-  const u = getUser();
-  if (!u || u.role !== role) logout();
-  return u;
+// ===== Session =====
+function requireLogin(role) {
+  const user = JSON.parse(sessionStorage.getItem("user") || "null");
+  if (!user || !sessionStorage.getItem("auth") || (role && user.role !== role)) {
+    location.href = "login.html";
+    return null;
+  }
+  return user;
+}
+
+function logout() {
+  sessionStorage.clear();
+  location.href = "index.html";
 }
