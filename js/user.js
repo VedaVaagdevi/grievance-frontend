@@ -1,6 +1,6 @@
 const me = requireRole("USER");
 $("logo").innerHTML = LOGO;
-if (me) { $("uname").textContent = me.name; $("uemail").textContent = me.email; }
+if (me) $("welcomeName").textContent = "Welcome, " + me.name;
 
 $("cCategory").innerHTML = Object.entries(CATEGORIES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
 $("cDept").innerHTML = `<option value="">Not sure - admin will decide</option>` +

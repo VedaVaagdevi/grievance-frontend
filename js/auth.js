@@ -1,3 +1,5 @@
+$("logo").innerHTML = LOGO;
+
 function showForm(isRegister) {
   $("loginForm").classList.toggle("hidden", isRegister);
   $("regForm").classList.toggle("hidden", !isRegister);
@@ -5,6 +7,10 @@ function showForm(isRegister) {
   $("tabReg").classList.toggle("active", isRegister);
   $("msg").textContent = "";
 }
+
+function openAuth(mode) { showForm(mode === "register"); $("authModal").classList.remove("hidden"); }
+function closeAuth() { $("authModal").classList.add("hidden"); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeAuth(); });
 
 $("tabLogin").onclick = () => showForm(false);
 $("tabReg").onclick = () => showForm(true);
@@ -28,13 +34,10 @@ $("regForm").onsubmit = async e => {
   e.preventDefault();
   try {
     await api("/auth/register", "POST", {
-      name: $("rName").value,
-      email: $("rEmail").value,
-      password: $("rPass").value
-    });
+      name: $("rName").value, email: $("rEmail").value, password: $("rPass").value });
     showForm(false);
     $("msg").className = "ok";
-    $("msg").textContent = "Registered! Please login.";
+    $("msg").textContent = "Registered successfully! Please login.";
   } catch (err) {
     $("msg").className = "msg";
     $("msg").textContent = err.message;
