@@ -268,8 +268,8 @@ dialog::backdrop{background:rgba(10,24,40,.7)}
 /* ===== CHANGE THESE TO MATCH YOUR PROJECT ===== */
 const CONFIG = {
   loginPage: null,
-  loginApi: "http://localhost:8080/api/auth/me",
-  statsApi: "http://localhost:8080/api/complaints/stats",
+    loginApi: "https://my-backend-c4do.onrender.com/api/auth/me",
+  statsApi: "https://my-backend-c4do.onrender.com/api/complaints/stats",
   userHome: "user-dashboard.html",
   adminHome: "admin-dashboard.html",
   sampleStats: { total: 128, resolved: 94, inProgress: 34, avgDays: 3.2 } // shown if statsApi is not available
@@ -337,7 +337,7 @@ document.getElementById("loginForm").addEventListener("submit", async e => {
       : CONFIG.userHome;
 
   } catch (ex) {
-    err.textContent = "Cannot connect to the backend at localhost:8080.";
+   err.textContent = "Cannot connect to the backend. Please try again later.";
   }
 });
 </script>
