@@ -1,6 +1,7 @@
 // ===== Configuration =====
 // Change this if your Spring Boot backend runs on a different address or has a context path.
-const API_BASE = "http://localhost:8080/api";
+const API_BASE = "https://my-backend-c4do.onrender.com/api";
+
 
 const CATEGORIES = ["Hostel", "Classroom / Lab", "Transport", "Electricity / Water", "Cleanliness", "Maintenance", "Other"];
 const DEPARTMENTS = ["Administration", "Hostel Office", "Academic Office", "Transport", "Electrical", "Housekeeping", "Maintenance"];
